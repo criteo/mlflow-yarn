@@ -1,0 +1,8 @@
+recursive-include mlflow_yarn *.py
+include setup.py
+include *.md
+include LICENSE
+include MANIFEST.in
+include requirements.txt
+include versioneer.py
+include mlflow_yarn/_version.py
