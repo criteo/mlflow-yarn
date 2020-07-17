@@ -29,4 +29,21 @@ jobs:
       run: |
         mypy --ignore-missing-imports --config-file setup.cfg
 
+  integration-tests:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.6
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.6
+    - name: Install hadoop-test-cluster
+      run: |
+        pip install hadoop-test-cluster
+    - name: Start job
+      run: |
+        htcluster startup --image cdh5 --mount .:mlflow-yarn
+        htcluster exec -- /home/testuser/mlflow-yarn/tests/integration_tests.sh
 
