@@ -22,7 +22,9 @@ _logger = logging.getLogger(__name__)
 
 _skein_client: skein.Client = None
 
+
 def yarn_backend_builder():
+    global _skein_client
     if not _skein_client:
         _skein_client = skein.Client()
     return YarnProjectBackend(_skein_client)
