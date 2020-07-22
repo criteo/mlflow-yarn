@@ -47,8 +47,7 @@ class YarnSubmittedRun(SubmittedRun):
         return self._mlflow_run_id
 
     def wait(self):
-        result = skein_helper.wait_for_finished(self._skein_client, self._skein_app_id)
-        return result
+        return skein_helper.wait_for_finished(self._skein_client, self._skein_app_id)
 
     def cancel(self):
         self._skein_client.kill_application(self._skein_app_id)
