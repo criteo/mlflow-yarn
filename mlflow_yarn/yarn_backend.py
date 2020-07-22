@@ -72,8 +72,8 @@ class YarnSubmittedRun(SubmittedRun):
 
 
 class YarnProjectBackend(AbstractBackend):
-    """Implementation of AbstractBackend runninG the job on YARN"""
 
+    """Implementation of AbstractBackend running the job on YARN"""
     def __init__(self, client):
         super().__init__()
         self._skein_client = client
