@@ -23,4 +23,3 @@ def test_simple_run():
             merged_logs += value
             _logger.info(f"logs:{key} {value}")
         assert "Hello world" in merged_logs
-
