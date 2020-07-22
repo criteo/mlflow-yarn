@@ -1,3 +1,4 @@
 pytest
 pylama
 mypy
+hadoop-test-cluster
