@@ -125,8 +125,8 @@ class YarnProjectBackend(AbstractBackend):
                 script=skein_config.script
             )
             spec = skein.ApplicationSpec(services={"service": service})
-            app_id = self.skein_client.submit(spec)
-            return YarnSubmittedRun(self.skein_client, app_id, active_run.info.run_id)
+            app_id = self._skein_client.submit(spec)
+            return YarnSubmittedRun(self._skein_client, app_id, active_run.info.run_id)
 
 
 def try_split_cmd(cmd):
