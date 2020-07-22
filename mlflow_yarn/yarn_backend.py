@@ -41,7 +41,7 @@ class YarnSubmittedRun(SubmittedRun):
     def __init__(self, client, skein_app_id, mlflow_run_id):
         super().__init__()
         self._skein_client = client
-        self._skein_app_id = skein_app_id
+        self.skein_app_id = skein_app_id
         self._mlflow_run_id = mlflow_run_id
 
     @property
@@ -49,13 +49,13 @@ class YarnSubmittedRun(SubmittedRun):
         return self._mlflow_run_id
 
     def wait(self):
-        return skein_helper.wait_for_finished(self._skein_client, self._skein_app_id)
+        return skein_helper.wait_for_finished(self._skein_client, self.skein_app_id)
 
     def cancel(self):
-        self._skein_client.kill_application(self._skein_app_id)
+        self._skein_client.kill_application(self.skein_app_id)
 
     def get_status(self):
-        app_report = self._skein_client.application_report(self._skein_app_id)
+        app_report = self._skein_client.application_report(self.skein_app_id)
         return self._translate_to_runstate(app_report.state)
 
     def _translate_to_runstate(self, app_state):
