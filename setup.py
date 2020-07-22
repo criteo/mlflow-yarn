@@ -52,6 +52,6 @@ setuptools.setup(
     url="https://github.com/criteo/mlflow-yarn",
     entry_points={
         "mlflow.project_backend":
-            "yarn=mlflow_yarn.yarn_backend:YarnProjectBackend",
+            "yarn=mlflow_yarn.yarn_backend:yarn_backend_builder",
     },
 )

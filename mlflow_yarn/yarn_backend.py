@@ -20,6 +20,13 @@ from mlflow.exceptions import ExecutionException
 
 _logger = logging.getLogger(__name__)
 
+_skein_client: skein.Client = None
+
+def yarn_backend_builder():
+    if not _skein_client:
+        _skein_client = skein.Client()
+    return YarnProjectBackend(_skein_client)
+
 
 class YarnSubmittedRun(SubmittedRun):
     """Instance of SubmittedRun
@@ -30,7 +37,7 @@ class YarnSubmittedRun(SubmittedRun):
     :param mlflow_run_id: ID of the MLflow project run.
     """
     def __init__(self, client, skein_app_id, mlflow_run_id):
-        super(YarnSubmittedRun, self).__init__()
+        super().__init__()
         self._skein_client = client
         self._skein_app_id = skein_app_id
         self._mlflow_run_id = mlflow_run_id
@@ -41,12 +48,10 @@ class YarnSubmittedRun(SubmittedRun):
 
     def wait(self):
         result = skein_helper.wait_for_finished(self._skein_client, self._skein_app_id)
-        self._skein_client.close()
         return result
 
     def cancel(self):
         self._skein_client.kill_application(self._skein_app_id)
-        self._skein_client.close()
 
     def get_status(self):
         app_report = self._skein_client.application_report(self._skein_app_id)
@@ -68,6 +73,10 @@ class YarnSubmittedRun(SubmittedRun):
 
 class YarnProjectBackend(AbstractBackend):
     """Implementation of AbstractBackend runninG the job on YARN"""
+
+    def __init__(self, client):
+        super().__init__()
+        self._skein_client = client
 
     def run(self, project_uri, entry_point, params,
             version, backend_config, tracking_uri, experiment_id):
@@ -109,15 +118,14 @@ class YarnProjectBackend(AbstractBackend):
                     additional_files=additional_files,
                     tmp_dir=tempdir)
 
-            client = skein.Client()
             service = skein.Service(
                 resources=skein.model.Resources("1 GiB", 1),
                 files=skein_config.files,
                 script=skein_config.script
             )
             spec = skein.ApplicationSpec(services={"service": service})
-            app_id = client.submit(spec)
-            return YarnSubmittedRun(client, app_id, active_run.info.run_id)
+            app_id = self.skein_client.submit(spec)
+            return YarnSubmittedRun(self.skein_client, app_id, active_run.info.run_id)
 
 
 def try_split_cmd(cmd):
