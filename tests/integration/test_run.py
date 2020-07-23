@@ -14,7 +14,8 @@ pytestmark = pytest.mark.integration
 def test_simple_run():
     run = projects.run(
         os.path.join(os.path.dirname(__file__), "..", "resources", "example_yarn_project"),
-        backend="yarn", entry_point="greeter", parameters={"greeting": "Hello", "name": "world"})
+        backend="yarn", entry_point="greeter", parameters={"greeting": "Hello", "name": "world"},
+        synchronous=True)
 
     with skein.Client() as client:
         logs = skein_helper.get_application_logs(client, run.skein_app_id, 2)
