@@ -47,7 +47,16 @@ jobs:
     - name: Start cluster
       run: |
         htcluster startup --image cdh5 --mount .:mlflow-yarn
-    - name: Start job
+
+    - name: Start Job
       run: |
         # for the hack with script .. see https://github.com/actions/runner/issues/241#issuecomment-577360161
-        script -e -c "htcluster exec -u root -- chown -R testuser /home/testuser && htcluster exec -- /home/testuser/mlflow-yarn/tests/integration/integration_test.sh"
+        # the prebuild image only contains a conda install, we also install python 3.6.10
+        # to avoid sharing files on the worker node we copy the python3.6 install script via hdfs to worker /tmp folder
+        script -e -c "htcluster exec -u root -s edge -- chown -R testuser /home/testuser && \
+                      htcluster exec -u root -s edge -- /home/testuser/mlflow-yarn/tests/install_python.sh && \                    
+                      htcluster exec -u root -s edge -- hdfs dfs -put /home/testuser/mlflow-yarn/tests/install_python.sh hdfs:///tmp && \
+                      htcluster exec -u root -s worker -- hdfs dfs -get hdfs:///tmp/install_python.sh /home/testuser && \
+                      htcluster exec -u root -s worker -- chmod +x /home/testuser/install_python.sh && \
+                      htcluster exec -u root -s worker -- /home/testuser/install_python.sh && \
+                      htcluster exec -s edge -- /home/testuser/mlflow-yarn/tests/integration_test.sh"

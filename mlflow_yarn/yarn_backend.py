@@ -15,7 +15,6 @@ from mlflow.entities import RunStatus
 from mlflow.projects.utils import fetch_and_validate_project, get_or_create_run
 from mlflow.projects.backend.abstract_backend import AbstractBackend
 from mlflow.projects.submitted_run import SubmittedRun
-from mlflow.utils.conda import get_or_create_conda_env
 from mlflow.projects import load_project
 from mlflow.exceptions import ExecutionException
 
@@ -105,9 +104,14 @@ class YarnProjectBackend(AbstractBackend):
 
             _logger.info(f"entry_point_command={entry_point_command}")
 
-            conda_env_name = get_or_create_conda_env(project.conda_env_path)
-            conda_path = os.path.join(os.environ["MLFLOW_CONDA_HOME"], "envs", conda_env_name)
-            package_path = _pack_conda_env(conda_path)
+            if project.conda_env_path:
+                spec_file = project.conda_env_path
+            else:
+                spec_file = os.path.join(work_dir, "requirements.txt")
+                if not os.path.exists(spec_file):
+                    raise ValueError
+
+            package_path = cluster_pack.upload_spec(spec_file)
 
             additional_files = []
             for file in os.listdir(work_dir):
@@ -155,10 +159,3 @@ def try_split_cmd(cmd: str) -> Tuple[str, List[str]]:
     if len(parts) > 1:
         args = parts[1:]
     return entry_point, args
-
-
-def _pack_conda_env(conda_env_name: str) -> str:
-    temp_tarfile_dir = tempfile.mkdtemp()
-    conda_pack_filename = os.path.join(temp_tarfile_dir, "conda_env.tar.gz")
-    conda_pack.pack(prefix=conda_env_name, output=conda_pack_filename)
-    return conda_pack_filename
