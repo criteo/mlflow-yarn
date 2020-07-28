@@ -1,0 +1,9 @@
+name: Example yarn project with conda
+
+conda_env: conda.yaml
+
+entry_points:
+  compute_intersection:
+    parameters:
+      size: {type: int, default: 10000}
+    command: "python compute_intersection.py {size}"

@@ -1,2 +1,3 @@
 cluster-pack
 skein
+mlflow@git+https://github.com/criteo-forks/mlflow.git@criteo-master
