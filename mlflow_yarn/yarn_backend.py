@@ -17,6 +17,7 @@ from mlflow.projects.backend.abstract_backend import AbstractBackend
 from mlflow.projects.submitted_run import SubmittedRun
 from mlflow.projects import load_project
 from mlflow.exceptions import ExecutionException
+from mlflow.tracking import MlflowClient
 
 from typing import Tuple, List, Dict
 
@@ -94,7 +95,7 @@ class YarnProjectBackend(AbstractBackend):
         work_dir = fetch_and_validate_project(project_uri, version, entry_point, params)
         active_run = get_or_create_run(None, project_uri, experiment_id, work_dir, version,
                                        entry_point, params)
-
+        _logger.info(f"run_id={active_run.info.run_id}")
         _logger.info(f"work_dir={work_dir}")
         project = load_project(work_dir)
 
@@ -132,13 +133,20 @@ class YarnProjectBackend(AbstractBackend):
                     additional_files=additional_files,
                     tmp_dir=tempdir)
 
+            env = {
+                "MLFLOW_RUN_ID": active_run.info.run_id,
+                "MLFLOW_TRACKING_URI": mlflow.get_tracking_uri()
+            }
+
             service = skein.Service(
                 resources=skein.model.Resources("1 GiB", 1),
                 files=skein_config.files,
-                script=skein_config.script
+                script=skein_config.script,
+                env=env
             )
             spec = skein.ApplicationSpec(services={"service": service})
             app_id = self._skein_client.submit(spec)
+            MlflowClient().set_tag(active_run.info.run_id, "skein_application_id", app_id)
             return YarnSubmittedRun(self._skein_client, app_id, active_run.info.run_id)
 
 
