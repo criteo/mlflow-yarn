@@ -133,10 +133,14 @@ class YarnProjectBackend(AbstractBackend):
                     additional_files=additional_files,
                     tmp_dir=tempdir)
 
-            env = {
-                "MLFLOW_RUN_ID": active_run.info.run_id,
-                "MLFLOW_TRACKING_URI": mlflow.get_tracking_uri()
-            }
+            if "MLFLOW_YARN_TESTS" in os.environ:
+                # we need to have a real tracking server setup to be able to push the run id here
+                env = {"MLFLOW_TRACKING_URI": "file:/tmp/mlflow"}
+            else:
+                env = {
+                    "MLFLOW_RUN_ID": active_run.info.run_id,
+                    "MLFLOW_TRACKING_URI": mlflow.get_tracking_uri()
+                }
 
             service = skein.Service(
                 resources=skein.model.Resources("1 GiB", 1),
