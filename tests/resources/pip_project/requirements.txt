@@ -1,2 +1,2 @@
+mlflow-yarn@git+https://github.com/criteo/mlflow-yarn.git
 numpy
-mlflow

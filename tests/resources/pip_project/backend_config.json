@@ -1,0 +1,6 @@
+
+{
+  "num_cores": 2,
+  "memory": "2 GiB",
+  "queue": "default"  
+}

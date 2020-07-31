@@ -1,3 +1,6 @@
+import functools
+import getpass
+import json
 import logging
 import os
 import tempfile
@@ -12,15 +15,21 @@ from cluster_pack import packaging
 
 import mlflow
 from mlflow.entities import RunStatus
-from mlflow.projects.utils import fetch_and_validate_project, get_or_create_run
+from mlflow.projects.utils import (
+    fetch_and_validate_project, get_or_create_run,
+    PROJECT_STORAGE_DIR
+)
 from mlflow.projects.backend.abstract_backend import AbstractBackend
 from mlflow.projects.submitted_run import SubmittedRun
 from mlflow.projects import load_project
 from mlflow.exceptions import ExecutionException
 from mlflow.tracking import MlflowClient
 
+from mlflow_yarn._upload_logs import _upload_logs
+
 from typing import Tuple, List, Dict
 
+import mlflow_yarn
 
 _logger = logging.getLogger(__name__)
 
@@ -88,7 +97,7 @@ class YarnProjectBackend(AbstractBackend):
         self._skein_client = client
 
     def run(self, project_uri: str, entry_point: str, params: Dict,
-            version: str, backend_config: str, tracking_uri: str, experiment_id: str
+            version: str, backend_config: Dict, tracking_uri: str, experiment_id: str
     ) -> SubmittedRun:
         _logger.info('using yarn backend')
         _logger.info(locals())
@@ -99,59 +108,74 @@ class YarnProjectBackend(AbstractBackend):
         _logger.info(f"work_dir={work_dir}")
         project = load_project(work_dir)
 
-        with tempfile.TemporaryDirectory() as tempdir:
-            entry_point_command = project.get_entry_point(entry_point)\
-                .compute_command(params, tempdir)
+        storage_dir = backend_config[PROJECT_STORAGE_DIR]
 
-            _logger.info(f"entry_point_command={entry_point_command}")
+        entry_point_command = project.get_entry_point(entry_point)\
+            .compute_command(params, storage_dir)
 
-            if project.conda_env_path:
-                spec_file = project.conda_env_path
-            else:
-                spec_file = os.path.join(work_dir, "requirements.txt")
-                if not os.path.exists(spec_file):
-                    raise ValueError
+        _logger.info(f"entry_point_command={entry_point_command}")
 
-            package_path = cluster_pack.upload_spec(spec_file)
+        if project.conda_env_path:
+            spec_file = project.conda_env_path
+        else:
+            spec_file = os.path.join(work_dir, "requirements.txt")
+            if not os.path.exists(spec_file):
+                raise ValueError
 
-            additional_files = []
-            for file in os.listdir(work_dir):
-                full_path = os.path.join(work_dir, file)
-                if os.path.isfile(full_path):
-                    additional_files.append(full_path)
+        package_path = cluster_pack.upload_spec(spec_file)
+        _logger.info(package_path)
 
-            _logger.info(package_path)
+        additional_files = []
+        for file in os.listdir(work_dir):
+            full_path = os.path.join(work_dir, file)
+            if os.path.isfile(full_path):
+                additional_files.append(full_path)
 
-            entry_point, args = try_split_cmd(entry_point_command)
+        entry_point, args = try_split_cmd(entry_point_command)
 
-            _logger.info(f"args {entry_point} {args}")
+        _logger.info(f"args {entry_point} {args}")
 
-            skein_config = skein_config_builder.build(
-                    module_name=entry_point,
-                    args=args,
-                    package_path=package_path,
-                    additional_files=additional_files,
-                    tmp_dir=tempdir)
+        if "MLFLOW_YARN_TESTS" in os.environ:
+            # we need to have a real tracking server setup to be able to push the run id here
+            env = {"MLFLOW_TRACKING_URI": "file:/tmp/mlflow"}
+        else:
+            env = {
+                "MLFLOW_RUN_ID": active_run.info.run_id,
+                "MLFLOW_TRACKING_URI": mlflow.get_tracking_uri(),
+                "MLFLOW_EXPERIMENT_ID": experiment_id
+            }
 
-            if "MLFLOW_YARN_TESTS" in os.environ:
-                # we need to have a real tracking server setup to be able to push the run id here
-                env = {"MLFLOW_TRACKING_URI": "file:/tmp/mlflow"}
-            else:
-                env = {
-                    "MLFLOW_RUN_ID": active_run.info.run_id,
-                    "MLFLOW_TRACKING_URI": mlflow.get_tracking_uri()
-                }
+        _backend_dict = _get_backend_dict(work_dir)
+        # update config with what has been passed with --backend-config <json-new-config>
+        for key in _backend_dict.keys():
+            if key in backend_config:
+                _backend_dict[key] = backend_config[key]
 
-            service = skein.Service(
-                resources=skein.model.Resources("1 GiB", 1),
-                files=skein_config.files,
-                script=skein_config.script,
-                env=env
-            )
-            spec = skein.ApplicationSpec(services={"service": service})
-            app_id = self._skein_client.submit(spec)
-            MlflowClient().set_tag(active_run.info.run_id, "skein_application_id", app_id)
-            return YarnSubmittedRun(self._skein_client, app_id, active_run.info.run_id)
+        _logger.info(f"backend config: {_backend_dict}")
+
+        app_id = skein_launcher.submit(
+                self._skein_client,
+                module_name=entry_point,
+                args=args,
+                package_path=package_path,
+                additional_files=additional_files,
+                env_vars=env,
+                process_logs=_upload_logs,
+                **_backend_dict)
+
+        MlflowClient().set_tag(active_run.info.run_id, "skein_application_id", app_id)
+        return YarnSubmittedRun(self._skein_client, app_id, active_run.info.run_id)
+
+
+def _get_backend_dict(work_dir: str) -> Dict:
+    backend_config = os.path.join(work_dir, "backend_config.json")
+    if os.path.exists(backend_config):
+        with open(backend_config, 'r') as f:
+            backend_config_dict = json.load(f)
+            if not isinstance(backend_config_dict, dict):
+                raise ValueError(f"{backend_config} file must be a dict")
+            return backend_config_dict
+    return {}
 
 
 def try_split_cmd(cmd: str) -> Tuple[str, List[str]]:

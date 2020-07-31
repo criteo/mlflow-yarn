@@ -9,7 +9,7 @@ then
 fi
 
 # install python interpreter globally
-yum install -y wget gcc openssl-devel bzip2-devel libffi-devel
+yum install -y wget gcc openssl-devel bzip2-devel libffi-devel xz-devel
 pushd /usr/src
 wget https://www.python.org/ftp/python/3.6.10/Python-3.6.10.tgz
 tar xzf Python-3.6.10.tgz

@@ -2,7 +2,6 @@ import logging
 import os
 import pytest
 import skein
-from mlflow import projects
 
 from mlflow_yarn import yarn_backend, _upload_logs
 
