@@ -2,7 +2,7 @@ import logging
 import os
 import pytest
 import skein
-from cluster_pack.skein import skein_helper
+from cluster_pack.skein import skein_launcher
 from mlflow import projects
 
 _logger = logging.getLogger(__name__)
@@ -33,7 +33,7 @@ def test_simple_run_pip():
 
 def _check_merged_logs(app_id, key_word):
     with skein.Client() as client:
-        logs = skein_helper.get_application_logs(client, app_id, 2)
+        logs = skein_launcher.get_application_logs(client, app_id, 2)
         merged_logs = ""
         for key, value in logs.items():
             merged_logs += value
