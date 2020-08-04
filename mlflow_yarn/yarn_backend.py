@@ -7,7 +7,7 @@ import time
 import conda_pack
 import skein
 import cluster_pack
-from cluster_pack.skein import skein_config_builder, skein_helper
+from cluster_pack.skein import skein_config_builder, skein_launcher
 from cluster_pack import packaging
 
 import mlflow
@@ -53,7 +53,7 @@ class YarnSubmittedRun(SubmittedRun):
         return self._mlflow_run_id
 
     def wait(self) -> bool:
-        return skein_helper.wait_for_finished(self._skein_client, self.skein_app_id)
+        return skein_launcher.wait_for_finished(self._skein_client, self.skein_app_id)
 
     def cancel(self) -> None:
         self._skein_client.kill_application(self.skein_app_id)
