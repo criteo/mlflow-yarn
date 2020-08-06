@@ -176,7 +176,7 @@ def _get_backend_dict(work_dir: str) -> Dict:
                 if not isinstance(backend_config_dict, dict):
                     raise ValueError(f"{backend_config} file must be a dict")
                 return backend_config_dict
-        except json.JSONDecodeError e:
+        except json.JSONDecodeError as e:
             _logger.error(f"Failed to parse {backend_config}", exc_info=e)
             return {}
     return {}
