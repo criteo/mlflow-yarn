@@ -170,11 +170,15 @@ class YarnProjectBackend(AbstractBackend):
 def _get_backend_dict(work_dir: str) -> Dict:
     backend_config = os.path.join(work_dir, "backend_config.json")
     if os.path.exists(backend_config):
-        with open(backend_config, 'r') as f:
-            backend_config_dict = json.load(f)
-            if not isinstance(backend_config_dict, dict):
-                raise ValueError(f"{backend_config} file must be a dict")
-            return backend_config_dict
+        try:
+            with open(backend_config, 'r') as f:
+                backend_config_dict = json.load(f)
+                if not isinstance(backend_config_dict, dict):
+                    raise ValueError(f"{backend_config} file must be a dict")
+                return backend_config_dict
+        except json.JSONDecodeError e:
+            _logger.error(f"Failed to parse {backend_config}", exc_info=e)
+            return {}
     return {}
 
 
