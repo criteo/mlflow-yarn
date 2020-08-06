@@ -1,6 +1,7 @@
 import getpass
 import os
 import mlflow
+import traceback
 
 
 def _extract_skein_container_name(container_id: str) -> str:
@@ -32,5 +33,9 @@ def _log_url() -> str:
 
 
 def _upload_logs(local_log_path: str) -> None:
-    mlflow.set_tag("log_url", _log_url())
-    mlflow.log_artifact(local_log_path)
+    try:
+        mlflow.set_tag("log_url", _log_url())
+        mlflow.log_artifact(local_log_path)
+    except Exception:
+        print("failed to upload logs to mlflow")
+        traceback.print_exc()
