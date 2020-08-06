@@ -34,8 +34,8 @@ def _log_url() -> str:
 
 def _upload_logs(local_log_path: str) -> None:
     try:
-        mlflow.set_tag("log_url", _log_url())    
+        mlflow.set_tag("log_url", _log_url())
         mlflow.log_artifact(local_log_path)
-    except Exception as err:
+    except Exception:
         print("failed to upload logs to mlflow")
-        traceback.print_exc()      
+        traceback.print_exc()
