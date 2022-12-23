@@ -2,3 +2,7 @@ pytest
 pylama
 mypy
 hadoop-test-cluster
+
+# To fix module 'pyflakes.messages' has no attribute 'RedefinedInListComp'
+pyflakes==2.4.0
+pycodestyle==2.8.0

@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04 # Latest version supporting Python 3.6
 
     steps:
     - uses: actions/checkout@v2
@@ -33,7 +33,7 @@ jobs:
 
   integration-tests:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04 # Latest version supporting Python 3.6
 
     steps:
     - uses: actions/checkout@v2
@@ -46,7 +46,7 @@ jobs:
         pip install hadoop-test-cluster
     - name: Start cluster
       run: |
-        htcluster startup --image cdh5 --mount .:mlflow-yarn
+        htcluster startup --image cdh5:latest --mount .:mlflow-yarn
 
     - name: Start Job
       run: |
