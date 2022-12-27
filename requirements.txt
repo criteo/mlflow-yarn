@@ -1,4 +1,3 @@
 cluster-pack
 skein
-# waiting for https://github.com/criteo-forks/mlflow/pull/205 to be released
-mlflow@git+https://github.com/mlflow/mlflow.git
+mlflow-skinny==1.23.1
